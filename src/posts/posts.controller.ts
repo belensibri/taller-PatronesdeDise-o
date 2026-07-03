@@ -1,12 +1,13 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { PostsService } from './posts.service';
+import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Get()
-  findAll() {
-    return this.postsService.findAll();
+  findAll(@Query() query: GetPostsQueryDto) {
+    return this.postsService.findAll(query);
   }
 }

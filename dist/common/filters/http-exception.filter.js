@@ -15,12 +15,31 @@ let HttpExceptionFilter = class HttpExceptionFilter {
         const status = exception instanceof common_1.HttpException
             ? exception.getStatus()
             : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-        const message = exception instanceof common_1.HttpException
-            ? exception.message
-            : 'Internal server error';
+        let code = 'INTERNAL_SERVER_ERROR';
+        let message = 'Internal server error';
+        if (exception instanceof common_1.HttpException) {
+            code = exception.name;
+            const res = exception.getResponse();
+            if (typeof res === 'object' && res !== null) {
+                const resObj = res;
+                if (status === common_1.HttpStatus.BAD_REQUEST && Array.isArray(resObj.message)) {
+                    code = 'VALIDATION_ERROR';
+                    message = 'El recurso contiene datos inválidos.';
+                }
+                else {
+                    message = resObj.message || exception.message;
+                }
+            }
+            else {
+                message = exception.message;
+            }
+        }
+        else if (exception instanceof Error) {
+            message = exception.message;
+        }
         response.status(status).json({
             error: {
-                code: exception instanceof common_1.HttpException ? exception.name : 'INTERNAL_SERVER_ERROR',
+                code,
                 message,
             },
         });
