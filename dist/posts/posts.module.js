@@ -12,7 +12,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const post_entity_1 = require("./entities/post.entity");
 const posts_controller_1 = require("./posts.controller");
 const posts_service_1 = require("./posts.service");
-const dbEnabled = process.env.DB_ENABLED !== 'false';
+const dbEnabled = process.env.DB_ENABLED?.toLowerCase() === 'true';
 let PostsModule = class PostsModule {
 };
 exports.PostsModule = PostsModule;

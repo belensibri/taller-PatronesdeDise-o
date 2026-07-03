@@ -13,7 +13,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const health_module_1 = require("./health/health.module");
 const posts_module_1 = require("./posts/posts.module");
 const typeorm_config_1 = require("./database/typeorm.config");
-const dbEnabled = process.env.DB_ENABLED !== 'false';
+const dbEnabled = process.env.DB_ENABLED?.toLowerCase() === 'true';
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;

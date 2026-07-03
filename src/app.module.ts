@@ -5,7 +5,7 @@ import { HealthModule } from './health/health.module';
 import { PostsModule } from './posts/posts.module';
 import { typeOrmConfig } from './database/typeorm.config';
 
-const dbEnabled = process.env.DB_ENABLED !== 'false';
+const dbEnabled = process.env.DB_ENABLED?.toLowerCase() === 'true';
 
 @Module({
   imports: [
