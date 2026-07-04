@@ -27,9 +27,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       if (typeof res === 'object' && res !== null) {
         const resObj = res as Record<string, any>;
+
         if (status === HttpStatus.BAD_REQUEST && Array.isArray(resObj.message)) {
           code = 'VALIDATION_ERROR';
           message = 'El recurso contiene datos inválidos.';
+        } else if (resObj.error && typeof resObj.error === 'object') {
+          const errorPayload = resObj.error as Record<string, any>;
+          code = errorPayload.code || code;
+          message = errorPayload.message || message;
         } else {
           message = resObj.message || exception.message;
         }

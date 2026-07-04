@@ -1,8 +1,14 @@
-import { Injectable, Optional } from '@nestjs/common';
+﻿import {
+  Injectable,
+  Optional,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Post } from './entities/post.entity';
+import { Post, PostStatus } from './entities/post.entity';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 @Injectable()
 export class PostsService {
@@ -88,5 +94,33 @@ export class PostsService {
         total_pages: totalPages,
       },
     };
+  }
+
+  async update(id: string, dto: UpdatePostDto): Promise<Post> {
+    if (!this.postRepository) {
+      throw new NotFoundException({
+        error: { code: 'NOT_FOUND', message: 'El recurso solicitado no existe.' },
+      });
+    }
+
+    const post = await this.postRepository.findOne({ where: { id } });
+
+    if (!post) {
+      throw new NotFoundException({
+        error: { code: 'NOT_FOUND', message: 'El recurso solicitado no existe.' },
+      });
+    }
+
+    if (post.status === PostStatus.TRASH) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'UNPROCESSABLE',
+          message: 'No se puede modificar un post en estado trash.',
+        },
+      });
+    }
+
+    Object.assign(post, dto);
+    return this.postRepository.save(post);
   }
 }

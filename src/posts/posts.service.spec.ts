@@ -1,9 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
+﻿import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { PostsService } from './posts.service';
 import { Post, PostStatus } from './entities/post.entity';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 describe('PostsService', () => {
   let service: PostsService;
@@ -21,6 +23,8 @@ describe('PostsService', () => {
 
     const mockRepository = {
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+      findOne: jest.fn(),
+      save: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -40,6 +44,8 @@ describe('PostsService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  // ─── findAll ───────────────────────────────────────────────────────────────
 
   describe('findAll', () => {
     it('should query posts with default filters', async () => {
@@ -118,6 +124,66 @@ describe('PostsService', () => {
       await service.findAll(query);
 
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('post.title', 'ASC');
+    });
+  });
+
+  // ─── update ────────────────────────────────────────────────────────────────
+
+  describe('update', () => {
+    const existingPost: Post = {
+      id: 'uuid-1234',
+      title: 'Título original',
+      content: 'Contenido original',
+      excerpt: 'Resumen original',
+      slug: 'titulo-original',
+      status: PostStatus.DRAFT,
+      author_id: 1,
+      created_at: new Date('2026-07-01T10:00:00Z'),
+      updated_at: new Date('2026-07-01T10:00:00Z'),
+    };
+
+    it('should update and return the post with new values', async () => {
+      const dto: UpdatePostDto = { title: 'Título actualizado', status: PostStatus.PUBLISH };
+      const updatedPost = { ...existingPost, ...dto, updated_at: new Date() };
+
+      jest.spyOn(repository, 'findOne').mockResolvedValue(existingPost);
+      jest.spyOn(repository, 'save').mockResolvedValue(updatedPost);
+
+      const result = await service.update('uuid-1234', dto);
+
+      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 'uuid-1234' } });
+      expect(repository.save).toHaveBeenCalled();
+      expect(result.title).toBe('Título actualizado');
+      expect(result.status).toBe(PostStatus.PUBLISH);
+    });
+
+    it('should throw NotFoundException when post does not exist', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.update('uuid-inexistente', {})).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw UnprocessableEntityException when post is in trash', async () => {
+      const trashedPost: Post = { ...existingPost, status: PostStatus.TRASH };
+      jest.spyOn(repository, 'findOne').mockResolvedValue(trashedPost);
+
+      await expect(service.update('uuid-1234', { title: 'Nuevo título' })).rejects.toThrow(
+        UnprocessableEntityException,
+      );
+    });
+
+    it('should apply only the provided fields (partial update)', async () => {
+      const dto: UpdatePostDto = { title: 'Solo título cambiado' };
+      const savedPost = { ...existingPost, title: 'Solo título cambiado' };
+
+      jest.spyOn(repository, 'findOne').mockResolvedValue({ ...existingPost });
+      jest.spyOn(repository, 'save').mockResolvedValue(savedPost);
+
+      const result = await service.update('uuid-1234', dto);
+
+      expect(result.title).toBe('Solo título cambiado');
+      expect(result.content).toBe(existingPost.content);
+      expect(result.slug).toBe(existingPost.slug);
     });
   });
 });

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # CMS Foundation - NestJS
 
 Este proyecto corresponde al Foundation del CMS de posts y deja preparada la base para implementar los endpoints REST posteriores.
@@ -101,3 +102,44 @@ src/
 ## Siguiente paso
 
 Una vez que el Foundation esté listo, el siguiente trabajo es implementar los endpoints CRUD del recurso Post.
+=======
+# CMS Foundation
+
+## Update de posts
+
+Esta sección documenta la funcionalidad de update para los posts.
+
+### Endpoints disponibles
+
+- PUT /posts/:id: actualización completa del post.
+- PATCH /posts/:id: actualización parcial del post.
+
+### Ejemplo de solicitud
+
+PUT /posts/00000000-0000-0000-0000-000000000001
+
+```json
+{
+  "title": "Título actualizado",
+  "content": "Contenido actualizado",
+  "excerpt": "Resumen actualizado",
+  "slug": "titulo-actualizado",
+  "status": "publish",
+  "author_id": 1
+}
+```
+
+PATCH /posts/00000000-0000-0000-0000-000000000001
+
+```json
+{
+  "title": "Solo cambio el título"
+}
+```
+
+### Comportamiento
+
+- Si el post no existe, responde con 404 y un error con código `NOT_FOUND`.
+- Si el post está en estado `trash`, responde con 422 y un error con código `UNPROCESSABLE`.
+- Si el body contiene datos inválidos, responde con 400 y un error con código `VALIDATION_ERROR`.
+>>>>>>> Stashed changes
