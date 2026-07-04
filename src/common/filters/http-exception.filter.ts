@@ -4,6 +4,7 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  ValidationError,
 } from '@nestjs/common';
 import { Response } from 'express';
 
@@ -20,6 +21,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let code = 'INTERNAL_SERVER_ERROR';
     let message = 'Internal server error';
+    let details: Array<{ field: string }> | undefined;
 
     if (exception instanceof HttpException) {
       code = exception.name;
@@ -28,13 +30,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (typeof res === 'object' && res !== null) {
         const resObj = res as Record<string, any>;
 
-        if (status === HttpStatus.BAD_REQUEST && Array.isArray(resObj.message)) {
+        if (Array.isArray(resObj.message)) {
           code = 'VALIDATION_ERROR';
           message = 'El recurso contiene datos inválidos.';
+          details = this.getValidationDetails(resObj.message);
         } else if (resObj.error && typeof resObj.error === 'object') {
           const errorPayload = resObj.error as Record<string, any>;
           code = errorPayload.code || code;
           message = errorPayload.message || message;
+          details = errorPayload.details;
         } else {
           message = resObj.message || exception.message;
         }
@@ -45,11 +49,48 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    response.status(status).json({
-      error: {
-        code,
-        message,
-      },
-    });
+    const error: Record<string, unknown> = {
+      code,
+      message,
+    };
+
+    if (details) {
+      error.details = details;
+    }
+
+    response.status(status).json({ error });
+  }
+
+  private getValidationDetails(message: unknown[]): Array<{ field: string }> | undefined {
+    const fields = message
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item.split(' ')[0];
+        }
+
+        if (this.isValidationError(item)) {
+          return item.property;
+        }
+
+        return undefined;
+      })
+      .filter((field): field is string => Boolean(field));
+
+    const uniqueFields = [...new Set(fields)];
+
+    if (uniqueFields.length === 0) {
+      return undefined;
+    }
+
+    return uniqueFields.map((field) => ({ field }));
+  }
+
+  private isValidationError(value: unknown): value is ValidationError {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'property' in value &&
+      typeof (value as ValidationError).property === 'string'
+    );
   }
 }

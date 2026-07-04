@@ -23,6 +23,7 @@ describe('PostsService', () => {
 
     const mockRepository = {
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+      create: jest.fn((entity) => entity),
       findOne: jest.fn(),
       remove: jest.fn(),
       save: jest.fn(),
@@ -55,6 +56,7 @@ describe('PostsService', () => {
       author_id: 1,
       created_at: new Date('2026-07-01T10:00:00Z'),
       updated_at: new Date('2026-07-01T10:00:00Z'),
+      published_at: new Date('2026-07-01T10:00:00Z'),
     };
 
     it('should return a post wrapped in data', async () => {
@@ -74,7 +76,7 @@ describe('PostsService', () => {
           author_id: existingPost.author_id,
           created_at: existingPost.created_at,
           updated_at: existingPost.updated_at,
-          published_at: existingPost.created_at,
+          published_at: existingPost.published_at,
         },
       });
     });
@@ -88,6 +90,124 @@ describe('PostsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  // ─── create ───────────────────────────────────────────────────────────────
+
+  describe('create', () => {
+    const savedPost: Post = {
+      id: 'uuid-1234',
+      title: 'Mi nuevo post',
+      content: 'Contenido del post',
+      excerpt: null,
+      slug: 'mi-nuevo-post',
+      status: PostStatus.DRAFT,
+      author_id: 1,
+      created_at: new Date('2026-07-04T10:00:00Z'),
+      updated_at: new Date('2026-07-04T10:00:00Z'),
+      published_at: null,
+    };
+
+    it('should create a draft post with generated slug by default', async () => {
+      jest.spyOn(repository, 'save').mockResolvedValue(savedPost);
+
+      const result = await service.create({
+        title: 'Mi nuevo post',
+        content: 'Contenido del post',
+        author_id: 1,
+      });
+
+      expect(repository.create).toHaveBeenCalledWith({
+        title: 'Mi nuevo post',
+        content: 'Contenido del post',
+        excerpt: null,
+        slug: 'mi-nuevo-post',
+        status: PostStatus.DRAFT,
+        author_id: 1,
+        published_at: null,
+      });
+      expect(repository.save).toHaveBeenCalled();
+      expect(result).toEqual({
+        data: {
+          id: savedPost.id,
+          title: savedPost.title,
+          slug: savedPost.slug,
+          excerpt: savedPost.excerpt,
+          content: savedPost.content,
+          status: savedPost.status,
+          author_id: savedPost.author_id,
+          created_at: savedPost.created_at,
+          updated_at: savedPost.updated_at,
+          published_at: null,
+        },
+      });
+    });
+
+    it('should respect the provided slug', async () => {
+      jest.spyOn(repository, 'save').mockResolvedValue({
+        ...savedPost,
+        slug: 'slug-personalizado',
+      });
+
+      await service.create({
+        title: 'Mi nuevo post',
+        content: 'Contenido del post',
+        slug: 'slug-personalizado',
+        author_id: 1,
+      });
+
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: 'slug-personalizado' }),
+      );
+    });
+
+    it('should set published_at when status is publish', async () => {
+      const now = new Date('2026-07-04T12:00:00Z');
+      jest.useFakeTimers().setSystemTime(now);
+      jest.spyOn(repository, 'save').mockResolvedValue({
+        ...savedPost,
+        status: PostStatus.PUBLISH,
+        published_at: now,
+      });
+
+      await service.create({
+        title: 'Post publicado',
+        content: 'Contenido',
+        status: PostStatus.PUBLISH,
+        author_id: 1,
+      });
+
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: PostStatus.PUBLISH,
+          published_at: now,
+        }),
+      );
+
+      jest.useRealTimers();
+    });
+
+    it.each([PostStatus.DRAFT, PostStatus.PENDING, PostStatus.PRIVATE] as const)(
+      'should keep published_at null for %s status',
+      async (status) => {
+        jest.spyOn(repository, 'save').mockResolvedValue({
+          ...savedPost,
+          status,
+          published_at: null,
+        });
+
+        await service.create({
+          title: 'Post no publicado',
+          content: 'Contenido',
+          status,
+          author_id: 1,
+        });
+
+        expect(repository.create).toHaveBeenCalledWith(
+          expect.objectContaining({ status, published_at: null }),
+        );
+      },
+    );
   });
 
   // ─── findAll ───────────────────────────────────────────────────────────────
@@ -185,6 +305,7 @@ describe('PostsService', () => {
       author_id: 1,
       created_at: new Date('2026-07-01T10:00:00Z'),
       updated_at: new Date('2026-07-01T10:00:00Z'),
+      published_at: null,
     };
 
     it('should update and return the post with new values', async () => {
@@ -245,6 +366,7 @@ describe('PostsService', () => {
       author_id: 1,
       created_at: new Date('2026-07-01T10:00:00Z'),
       updated_at: new Date('2026-07-01T10:00:00Z'),
+      published_at: null,
     };
 
     it('should remove an existing post', async () => {

@@ -20,6 +20,7 @@ export class CreatePostsTable1700000000000 implements MigrationInterface {
           new TableColumn({ name: 'author_id', type: 'int', isNullable: false }),
           new TableColumn({ name: 'created_at', type: 'timestamp', default: 'CURRENT_TIMESTAMP' }),
           new TableColumn({ name: 'updated_at', type: 'timestamp', default: 'CURRENT_TIMESTAMP' }),
+          new TableColumn({ name: 'published_at', type: 'timestamp', isNullable: true }),
         ],
       }),
       true,

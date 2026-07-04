@@ -40,4 +40,7 @@ export class Post {
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updated_at!: Date;
+
+  @Column({ type: 'timestamp', name: 'published_at', nullable: true })
+  published_at!: Date | null;
 }

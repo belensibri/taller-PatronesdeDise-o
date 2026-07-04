@@ -9,10 +9,12 @@
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Put,
   Query,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
+import { CreatePostDto } from './dto/create-post.dto';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
@@ -33,6 +35,11 @@ export class PostsController {
   @Get()
   findAll(@Query() query: GetPostsQueryDto) {
     return this.postsService.findAll(query);
+  }
+
+  @Post()
+  create(@Body() dto: CreatePostDto) {
+    return this.postsService.create(dto);
   }
 
   @Get(':id')

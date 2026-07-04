@@ -7,6 +7,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post, PostStatus } from './entities/post.entity';
+import { CreatePostDto } from './dto/create-post.dto';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
@@ -20,7 +21,7 @@ export interface PostResponse {
   author_id: number;
   created_at: Date;
   updated_at: Date;
-  published_at: Date;
+  published_at: Date | null;
 }
 
 @Injectable()
@@ -30,6 +31,27 @@ export class PostsService {
     @InjectRepository(Post)
     private readonly postRepository?: Repository<Post>,
   ) {}
+
+  async create(dto: CreatePostDto): Promise<{ data: PostResponse }> {
+    const repository = this.getPostRepository();
+    const status = dto.status ?? PostStatus.DRAFT;
+    const publishedAt = status === PostStatus.PUBLISH ? new Date() : null;
+    const post = repository.create({
+      title: dto.title,
+      content: dto.content,
+      excerpt: dto.excerpt ?? null,
+      slug: dto.slug ?? this.generateSlug(dto.title),
+      status,
+      author_id: dto.author_id,
+      published_at: publishedAt,
+    });
+
+    const savedPost = await repository.save(post);
+
+    return {
+      data: this.mapPostToResponse(savedPost),
+    };
+  }
 
   async findAll(query: GetPostsQueryDto) {
     const { page, per_page, search, status, author, orderby, order } = query;
@@ -166,7 +188,17 @@ export class PostsService {
       author_id: post.author_id,
       created_at: post.created_at,
       updated_at: post.updated_at,
-      published_at: post.created_at,
+      published_at: post.published_at,
     };
+  }
+
+  private generateSlug(title: string): string {
+    return title
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 }
