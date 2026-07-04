@@ -1,86 +1,285 @@
-Actúa como un arquitecto de software senior especializado en NestJS, TypeScript y diseño de APIs REST escalables.
+# Plan de Implementación
 
-Necesito implementar los endpoints **SHOW (GET por id)** y **DELETE** dentro de una API desarrollada con NestJS.
+## Contexto
 
-## Objetivo
+El objetivo es implementar los endpoints **SHOW** y **DELETE** dentro de una API REST desarrollada con NestJS.
 
-Implementar ambos endpoints siguiendo una arquitectura limpia, código mantenible y buenas prácticas de NestJS.
+La implementación debe integrarse completamente con la arquitectura existente del proyecto, evitando cambios innecesarios y respetando todas las convenciones ya utilizadas.
 
-## Requisitos de arquitectura
+Este documento describe el procedimiento que debe seguir el agente antes, durante y después de la implementación.
 
-Aplica estrictamente los siguientes principios:
+---
+
+# Objetivo
+
+Agregar soporte para:
+
+- GET /:id
+- DELETE /:id
+
+manteniendo una arquitectura limpia, consistente y fácilmente mantenible.
+
+---
+
+# Principios obligatorios
+
+Durante toda la implementación deben respetarse los siguientes principios:
 
 - SOLID
 - Clean Architecture
-- Separation of Concerns
 - Clean Code
-- Principio DRY
+- Separation of Concerns
+- DRY
 - KISS
-- Dependency Injection propia de NestJS
-- Alta cohesión y bajo acoplamiento
+- Dependency Injection
+- Single Responsibility Principle
+- Open/Closed Principle
 
-## Requisitos de implementación
+No deben sacrificarse estos principios para escribir menos código.
 
-Para ambos endpoints debes:
+---
 
-- Mantener la arquitectura existente del proyecto.
-- No introducir lógica de negocio dentro del Controller.
-- Toda la lógica debe residir en el Service.
-- Utilizar el Repository/ORM ya existente.
-- No duplicar código.
-- Reutilizar métodos privados cuando sea conveniente.
-- Mantener consistencia con el resto del módulo.
+# Restricciones
 
-## Endpoint SHOW
+El agente NO debe:
 
-Implementar un endpoint que:
+- modificar módulos no relacionados
+- cambiar la arquitectura existente
+- refactorizar componentes fuera del alcance
+- renombrar clases sin necesidad
+- modificar rutas existentes
+- introducir dependencias nuevas
+- duplicar lógica
+- agregar utilidades genéricas innecesarias
+- cambiar el estilo de código del proyecto
 
-- Obtenga un registro mediante su id.
-- Devuelva únicamente la información necesaria.
-- Si el recurso no existe, lanzar la excepción HTTP adecuada utilizando las excepciones nativas de NestJS.
-- Validar correctamente el parámetro recibido.
-- Mantener una respuesta consistente con el resto de la API.
+Todo cambio debe estar directamente relacionado con SHOW o DELETE.
 
-## Endpoint DELETE
+---
 
-Implementar un endpoint que:
+# Fase 1 — Análisis
 
-- Elimine un registro mediante su id.
-- Antes de eliminar, validar que el recurso exista.
-- Si no existe, lanzar la excepción correspondiente.
-- Si la eliminación es exitosa, devolver la respuesta HTTP más apropiada siguiendo las convenciones REST.
-- Si existe lógica de borrado lógico (soft delete), utilizarla; de lo contrario, realizar eliminación física.
+Antes de escribir código el agente debe analizar:
 
-## Buenas prácticas
+## Controller
 
-Asegúrate de:
+Identificar:
 
-- Utilizar decoradores oficiales de NestJS.
-- Aplicar tipado fuerte en todo momento.
-- Evitar código repetido.
-- Escribir métodos pequeños y con una única responsabilidad.
-- Nombrar variables y métodos de forma clara y consistente.
-- Mantener la legibilidad del código como prioridad.
-- Evitar cualquier implementación innecesaria.
+- endpoints existentes
+- convenciones de rutas
+- uso de DTOs
+- Pipes
+- Guards
+- Swagger
+- Decoradores
 
-## Documentación
+## Service
 
-Si el proyecto utiliza Swagger:
+Identificar:
 
-- Agregar los decoradores correspondientes para documentar ambos endpoints.
+- responsabilidades
+- métodos existentes reutilizables
+- lógica repetible
+- validaciones existentes
 
-## Resultado esperado
+## Repository
 
-Genera únicamente el código necesario para integrar ambos endpoints respetando la estructura actual del proyecto.
+Analizar:
 
-Antes de escribir cualquier código:
+- ORM utilizado
+- métodos disponibles
+- manejo de errores
+- consultas existentes
 
-1. Analiza la arquitectura existente.
-2. Identifica qué archivos deben modificarse.
-3. Explica brevemente por qué cada cambio es necesario.
-4. Después genera el código completo de cada archivo modificado.
-5. Explica cualquier decisión de diseño que hayas tomado.
+## DTOs
 
-No modifiques código que no esté relacionado con estos endpoints.
-No simplifiques la implementación.
-Prioriza mantenibilidad, extensibilidad y consistencia sobre escribir menos líneas de código.
+Verificar si:
+
+- existe DTO para parámetros
+- existe DTO reutilizable
+- es necesario crear uno nuevo
+
+No crear DTOs innecesarios.
+
+---
+
+# Fase 2 — Diseño
+
+Antes de implementar definir:
+
+## SHOW
+
+Determinar:
+
+- flujo completo
+- validaciones
+- excepciones
+- respuesta
+
+## DELETE
+
+Determinar:
+
+- existencia previa
+- estrategia de eliminación
+- respuesta HTTP
+- manejo de errores
+
+No comenzar la implementación hasta tener definido el flujo completo.
+
+---
+
+# Fase 3 — Implementación Controller
+
+Agregar únicamente:
+
+GET /:id
+
+DELETE /:id
+
+El Controller únicamente debe:
+
+- recibir request
+- validar parámetros mediante Pipes
+- invocar el Service
+- retornar respuesta
+
+No agregar lógica de negocio.
+
+---
+
+# Fase 4 — Implementación Service
+
+Toda la lógica debe vivir aquí.
+
+Implementar:
+
+SHOW
+
+Debe:
+
+- buscar entidad
+- validar existencia
+- lanzar NotFoundException cuando corresponda
+- retornar entidad
+
+DELETE
+
+Debe:
+
+- buscar entidad
+- validar existencia
+- eliminar
+- retornar respuesta adecuada
+
+Reutilizar métodos privados cuando sea posible.
+
+No duplicar lógica.
+
+---
+
+# Fase 5 — Persistencia
+
+Usar únicamente el Repository existente.
+
+No escribir consultas duplicadas.
+
+Si existe método reutilizable debe utilizarse.
+
+Si existe Soft Delete utilizarlo.
+
+Solo implementar Hard Delete cuando el proyecto ya utilice ese enfoque.
+
+---
+
+# Fase 6 — Manejo de errores
+
+Utilizar únicamente excepciones nativas de NestJS.
+
+Ejemplos:
+
+- NotFoundException
+- BadRequestException
+- ConflictException
+
+No devolver objetos manuales de error.
+
+---
+
+# Fase 7 — Swagger
+
+Si Swagger ya existe en el proyecto:
+
+documentar:
+
+- GET
+- DELETE
+
+Agregar:
+
+- ApiOperation
+- ApiResponse
+- ApiParam
+
+Mantener consistencia con el resto del módulo.
+
+---
+
+# Fase 8 — Validaciones
+
+Verificar:
+
+- id válido
+- entidad existente
+- respuestas HTTP
+- tipado
+- imports
+- inyección de dependencias
+
+---
+
+# Fase 9 — Revisión de calidad
+
+Antes de finalizar revisar:
+
+□ No existe código duplicado
+
+□ No existe lógica en Controller
+
+□ No existen métodos muertos
+
+□ No existen imports sin usar
+
+□ No existen variables innecesarias
+
+□ Los nombres son consistentes
+
+□ Se respetó SOLID
+
+□ Se respetó Clean Code
+
+□ Se respetó la arquitectura existente
+
+---
+
+# Entrega
+
+La respuesta final debe contener:
+
+1. Resumen del análisis realizado.
+
+2. Lista de archivos modificados.
+
+3. Justificación de cada cambio.
+
+4. Código completo de cada archivo modificado.
+
+5. Explicación breve de las decisiones de diseño.
+
+No generar código fuera del alcance de esta implementación.
+
+No asumir comportamiento inexistente.
+
+No crear funcionalidades adicionales.
+
+La prioridad absoluta es mantener la consistencia con la arquitectura existente del proyecto.
