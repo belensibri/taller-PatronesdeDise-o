@@ -56,18 +56,7 @@ let PostsService = class PostsService {
         queryBuilder.skip((page - 1) * per_page);
         queryBuilder.take(per_page);
         const [items, total] = await queryBuilder.getManyAndCount();
-        const mappedItems = items.map((item) => ({
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            excerpt: item.excerpt,
-            content: item.content,
-            status: item.status,
-            author_id: item.author_id,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            published_at: item.created_at,
-        }));
+        const mappedItems = items.map((item) => this.mapPostToResponse(item));
         const totalPages = Math.ceil(total / per_page);
         return {
             data: mappedItems,
@@ -77,6 +66,64 @@ let PostsService = class PostsService {
                 current_page: page,
                 total_pages: totalPages,
             },
+        };
+    }
+    async findOne(id) {
+        const post = await this.findPostByIdOrFail(id);
+        return {
+            data: this.mapPostToResponse(post),
+        };
+    }
+    async update(id, dto) {
+        const repository = this.getPostRepository();
+        const post = await this.findPostByIdOrFail(id);
+        if (post.status === post_entity_1.PostStatus.TRASH) {
+            throw new common_1.UnprocessableEntityException({
+                error: {
+                    code: 'UNPROCESSABLE',
+                    message: 'No se puede modificar un post en estado trash.',
+                },
+            });
+        }
+        Object.assign(post, dto);
+        return repository.save(post);
+    }
+    async remove(id) {
+        const repository = this.getPostRepository();
+        const post = await this.findPostByIdOrFail(id);
+        await repository.remove(post);
+    }
+    async findPostByIdOrFail(id) {
+        const repository = this.getPostRepository();
+        const post = await repository.findOne({ where: { id } });
+        if (!post) {
+            throw this.createNotFoundException();
+        }
+        return post;
+    }
+    getPostRepository() {
+        if (!this.postRepository) {
+            throw this.createNotFoundException();
+        }
+        return this.postRepository;
+    }
+    createNotFoundException() {
+        return new common_1.NotFoundException({
+            error: { code: 'NOT_FOUND', message: 'El recurso solicitado no existe.' },
+        });
+    }
+    mapPostToResponse(post) {
+        return {
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            content: post.content,
+            status: post.status,
+            author_id: post.author_id,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
+            published_at: post.created_at,
         };
     }
 };

@@ -10,6 +10,19 @@ import { Post, PostStatus } from './entities/post.entity';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
+export interface PostResponse {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  status: PostStatus;
+  author_id: number;
+  created_at: Date;
+  updated_at: Date;
+  published_at: Date;
+}
+
 @Injectable()
 export class PostsService {
   constructor(
@@ -69,19 +82,7 @@ export class PostsService {
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
-    // Map items to output format, including published_at mapped to created_at
-    const mappedItems = items.map((item) => ({
-      id: item.id,
-      title: item.title,
-      slug: item.slug,
-      excerpt: item.excerpt,
-      content: item.content,
-      status: item.status,
-      author_id: item.author_id,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      published_at: item.created_at,
-    }));
+    const mappedItems = items.map((item) => this.mapPostToResponse(item));
 
     const totalPages = Math.ceil(total / per_page);
 
@@ -96,20 +97,17 @@ export class PostsService {
     };
   }
 
+  async findOne(id: string): Promise<{ data: PostResponse }> {
+    const post = await this.findPostByIdOrFail(id);
+
+    return {
+      data: this.mapPostToResponse(post),
+    };
+  }
+
   async update(id: string, dto: UpdatePostDto): Promise<Post> {
-    if (!this.postRepository) {
-      throw new NotFoundException({
-        error: { code: 'NOT_FOUND', message: 'El recurso solicitado no existe.' },
-      });
-    }
-
-    const post = await this.postRepository.findOne({ where: { id } });
-
-    if (!post) {
-      throw new NotFoundException({
-        error: { code: 'NOT_FOUND', message: 'El recurso solicitado no existe.' },
-      });
-    }
+    const repository = this.getPostRepository();
+    const post = await this.findPostByIdOrFail(id);
 
     if (post.status === PostStatus.TRASH) {
       throw new UnprocessableEntityException({
@@ -121,6 +119,54 @@ export class PostsService {
     }
 
     Object.assign(post, dto);
-    return this.postRepository.save(post);
+    return repository.save(post);
+  }
+
+  async remove(id: string): Promise<void> {
+    const repository = this.getPostRepository();
+    const post = await this.findPostByIdOrFail(id);
+
+    await repository.remove(post);
+  }
+
+  private async findPostByIdOrFail(id: string): Promise<Post> {
+    const repository = this.getPostRepository();
+
+    const post = await repository.findOne({ where: { id } });
+
+    if (!post) {
+      throw this.createNotFoundException();
+    }
+
+    return post;
+  }
+
+  private getPostRepository(): Repository<Post> {
+    if (!this.postRepository) {
+      throw this.createNotFoundException();
+    }
+
+    return this.postRepository;
+  }
+
+  private createNotFoundException(): NotFoundException {
+    return new NotFoundException({
+      error: { code: 'NOT_FOUND', message: 'El recurso solicitado no existe.' },
+    });
+  }
+
+  private mapPostToResponse(post: Post): PostResponse {
+    return {
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      content: post.content,
+      status: post.status,
+      author_id: post.author_id,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      published_at: post.created_at,
+    };
   }
 }

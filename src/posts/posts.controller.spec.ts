@@ -75,6 +75,34 @@ describe('PostsController (Integration)', () => {
     });
   });
 
+  // ─── GET /posts/:id ────────────────────────────────────────────────────────
+
+  it('GET /posts/:id (not found — DB disabled)', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/posts/00000000-0000-4000-8000-000000000001')
+      .expect(404);
+
+    expect(response.body).toEqual({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'El recurso solicitado no existe.',
+      },
+    });
+  });
+
+  it('GET /posts/:id (validation error - invalid id)', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/posts/id-invalido')
+      .expect(400);
+
+    expect(response.body).toEqual({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'El recurso contiene datos inválidos.',
+      },
+    });
+  });
+
   // ─── PUT /posts/:id ────────────────────────────────────────────────────────
 
   it('PUT /posts/:id (not found — DB disabled)', async () => {
@@ -139,6 +167,34 @@ describe('PostsController (Integration)', () => {
     const response = await request(app.getHttpServer())
       .patch('/posts/00000000-0000-0000-0000-000000000001')
       .send({ status: 'estado_invalido' })
+      .expect(400);
+
+    expect(response.body).toEqual({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'El recurso contiene datos inválidos.',
+      },
+    });
+  });
+
+  // ─── DELETE /posts/:id ─────────────────────────────────────────────────────
+
+  it('DELETE /posts/:id (not found — DB disabled)', async () => {
+    const response = await request(app.getHttpServer())
+      .delete('/posts/00000000-0000-4000-8000-000000000001')
+      .expect(404);
+
+    expect(response.body).toEqual({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'El recurso solicitado no existe.',
+      },
+    });
+  });
+
+  it('DELETE /posts/:id (validation error - invalid id)', async () => {
+    const response = await request(app.getHttpServer())
+      .delete('/posts/id-invalido')
       .expect(400);
 
     expect(response.body).toEqual({

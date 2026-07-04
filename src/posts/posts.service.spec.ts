@@ -24,6 +24,7 @@ describe('PostsService', () => {
     const mockRepository = {
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
       findOne: jest.fn(),
+      remove: jest.fn(),
       save: jest.fn(),
     };
 
@@ -39,6 +40,50 @@ describe('PostsService', () => {
 
     service = module.get<PostsService>(PostsService);
     repository = module.get<Repository<Post>>(getRepositoryToken(Post));
+  });
+
+  // ─── findOne ───────────────────────────────────────────────────────────────
+
+  describe('findOne', () => {
+    const existingPost: Post = {
+      id: 'uuid-1234',
+      title: 'Título original',
+      content: 'Contenido original',
+      excerpt: 'Resumen original',
+      slug: 'titulo-original',
+      status: PostStatus.PUBLISH,
+      author_id: 1,
+      created_at: new Date('2026-07-01T10:00:00Z'),
+      updated_at: new Date('2026-07-01T10:00:00Z'),
+    };
+
+    it('should return a post wrapped in data', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(existingPost);
+
+      const result = await service.findOne('uuid-1234');
+
+      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 'uuid-1234' } });
+      expect(result).toEqual({
+        data: {
+          id: existingPost.id,
+          title: existingPost.title,
+          slug: existingPost.slug,
+          excerpt: existingPost.excerpt,
+          content: existingPost.content,
+          status: existingPost.status,
+          author_id: existingPost.author_id,
+          created_at: existingPost.created_at,
+          updated_at: existingPost.updated_at,
+          published_at: existingPost.created_at,
+        },
+      });
+    });
+
+    it('should throw NotFoundException when post does not exist', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.findOne('uuid-inexistente')).rejects.toThrow(NotFoundException);
+    });
   });
 
   it('should be defined', () => {
@@ -184,6 +229,39 @@ describe('PostsService', () => {
       expect(result.title).toBe('Solo título cambiado');
       expect(result.content).toBe(existingPost.content);
       expect(result.slug).toBe(existingPost.slug);
+    });
+  });
+
+  // ─── remove ────────────────────────────────────────────────────────────────
+
+  describe('remove', () => {
+    const existingPost: Post = {
+      id: 'uuid-1234',
+      title: 'Título original',
+      content: 'Contenido original',
+      excerpt: 'Resumen original',
+      slug: 'titulo-original',
+      status: PostStatus.DRAFT,
+      author_id: 1,
+      created_at: new Date('2026-07-01T10:00:00Z'),
+      updated_at: new Date('2026-07-01T10:00:00Z'),
+    };
+
+    it('should remove an existing post', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(existingPost);
+      jest.spyOn(repository, 'remove').mockResolvedValue(existingPost);
+
+      await expect(service.remove('uuid-1234')).resolves.toBeUndefined();
+
+      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 'uuid-1234' } });
+      expect(repository.remove).toHaveBeenCalledWith(existingPost);
+    });
+
+    it('should throw NotFoundException when post does not exist', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.remove('uuid-inexistente')).rejects.toThrow(NotFoundException);
+      expect(repository.remove).not.toHaveBeenCalled();
     });
   });
 });

@@ -26,6 +26,11 @@ let HttpExceptionFilter = class HttpExceptionFilter {
                     code = 'VALIDATION_ERROR';
                     message = 'El recurso contiene datos inválidos.';
                 }
+                else if (resObj.error && typeof resObj.error === 'object') {
+                    const errorPayload = resObj.error;
+                    code = errorPayload.code || code;
+                    message = errorPayload.message || message;
+                }
                 else {
                     message = resObj.message || exception.message;
                 }
